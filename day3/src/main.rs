@@ -9,6 +9,7 @@ fn main() {
     let lines = read_file_to_str_list(INPUT_FILE_PATH).unwrap();
     let right_boundary: usize = lines[0].len();
 
+    let mut adj_number_sum: u32 = 0;
     let mut number_ranges: Vec<Vec<RangeInclusive<usize>>> = Vec::new();
     let mut symbol_indexes: Vec<Vec<usize>> = Vec::new();
     for line in lines.iter() {
@@ -16,19 +17,22 @@ fn main() {
         symbol_indexes.push(extract_symbols_index_from_line(line));
     }
 
-    for (line_index, line_number_ranges) in number_ranges.iter().enumerate() {
+    for (line_index, line_number_ranges) in number_ranges.iter_mut().enumerate() {
         println!("{}", lines[line_index]);
         println!("{:?}", line_number_ranges);
         for number_range in line_number_ranges {
-            let is_adj = is_number_adjascent_to_symbol(
+            if is_number_adjascent_to_symbol(
                 &line_index,
                 number_range,
                 &symbol_indexes,
                 &right_boundary,
-            );
-            println!("Range: {:?}, Adj: {}", number_range, is_adj);
+            ) {
+                adj_number_sum += get_number_in_line_from_range(&lines[line_index], number_range);
+            }
         }
     }
+
+    println!("Sum: {}", adj_number_sum);
 }
 
 fn read_file_to_str_list(file_path: &str) -> Result<Vec<String>, io::Error> {
@@ -72,13 +76,21 @@ fn extract_symbols_index_from_line(line: &String) -> Vec<usize> {
     return symbol_indexes;
 }
 
+fn get_number_in_line_from_range(line: &String, number_range: &mut RangeInclusive<usize>) -> u32 {
+    let mut adj_number_str = String::new();
+    for index in number_range {
+        adj_number_str.push(line.chars().nth(index).unwrap());
+    }
+    adj_number_str.parse::<u32>().unwrap()
+}
+
 fn is_number_adjascent_to_symbol(
     line_index: &usize,
     number_range: &mut RangeInclusive<usize>,
     symbol_indexes: &Vec<Vec<usize>>,
     right_boundary: &usize,
 ) -> bool {
-    number_range.any(|digit_index| {
+    number_range.clone().any(|digit_index| {
         is_digit_adjascent_to_symbol(line_index, &digit_index, symbol_indexes, right_boundary)
     })
 }
@@ -142,7 +154,7 @@ fn symbol_at_right(
 ) -> bool {
     *digit_index < *right_boundary - 1
         && symbol_indexes[*line_index]
-            .binary_search(&(*digit_index + 1))
+            .binary_search(&(digit_index + 1))
             .is_ok()
 }
 
@@ -154,7 +166,7 @@ fn symbol_at_top_right(
 ) -> bool {
     *digit_index < *right_boundary - 1
         && *line_index > 0
-        && symbol_indexes[*line_index]
+        && symbol_indexes[*line_index - 1]
             .binary_search(&(digit_index + 1))
             .is_ok()
 }
@@ -167,8 +179,8 @@ fn symbol_at_bottom_right(
 ) -> bool {
     *digit_index < *right_boundary - 1
         && *line_index < symbol_indexes.len() - 1
-        && symbol_indexes[*line_index]
-            .binary_search(&(*digit_index + 1))
+        && symbol_indexes[*line_index + 1]
+            .binary_search(&(digit_index + 1))
             .is_ok()
 }
 
